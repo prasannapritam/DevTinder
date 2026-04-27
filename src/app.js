@@ -2,25 +2,20 @@ const express = require('express');
 
 const app = express();
 
-const { adminAuth, userAuth } = require('./middleware/auth');
-
-//Handel Auth Middleware
-app.use('/admin', adminAuth);
-
-app.post('/user/login', (req, res) => {
-  res.send('User logged in succesfully');
+app.use('/', (err, req, res, next) => {
+  if (err) {
+    res.status(500).send('Something went wrong');
+  }
 });
 
-app.get('/user', userAuth, (req, res) => {
-  res.send('User data sent');
-});
-
-app.get('/admin/getAllData', (req, res) => {
-  res.send('User Data Sent');
-});
-
-app.get('/admin/deleteUser', (req, res) => {
-  res.send('Deleted a User');
+app.get('/getUserData', (req, res) => {
+  // Logic of DB call and get user data
+  try {
+    throw new Error('djhbf');
+    res.send('User Data Sent');
+  } catch (err) {
+    res.status(500).send('somethinng went wrong , contact supoort team');
+  }
 });
 
 app.listen(7777, () => {
