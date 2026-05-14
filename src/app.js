@@ -2,17 +2,47 @@ const express = require('express');
 const connectDB = require('./config/database');
 const app = express();
 const User = require('./models/user');
+const { validateSignUpData } = require('./utils/validation');
+const bcrypt = require('bcrypt');
 
 app.use(express.json());
 
 app.post('/signup', async (req, res) => {
-  // creating a new instance of the User model
-  const user = new User(req.body);
   try {
+    //Validation of data
+    validateSignUpData(req);
+    const { firstName, lastName, emailId, password } = req.body;
+    //Encrypt the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
+    // creating a new instance of the User model
+    const user = new User({ firstName, lastName, emailId, password: passwordHash });
+
     await user.save();
     res.send('user addedd succesfully');
   } catch (err) {
-    res.status(400).send('Error saving the user' + err.message);
+    res.status(400).send('ERROR : ' + err.message);
+  }
+});
+
+app.post('/login', async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+
+    const user = await User.findOne({ emailId: emailId });
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (isPasswordValid) {
+      res.send('Login successful!!!');
+    } else {
+      throw new Error('Invalid credentials');
+    }
+  } catch (err) {
+    res.status(400).send('Error :' + err.message);
   }
 });
 
@@ -58,6 +88,15 @@ app.patch('/user', async (req, res) => {
   const data = req.body;
 
   try {
+    const ALLOWED_UPDATES = ['userId', 'photoUrl', 'about', 'gender', 'age', 'skills'];
+
+    const isUpdateAllowed = Object.keys(data).every((k) => ALLOWED_UPDATES.includes(k));
+    if (!isUpdateAllowed) {
+      res.status(400).send('Update not allowed');
+    }
+    if (data?.skills?.length > 10) {
+      throw new Error('Skills cannot be more than 10');
+    }
     await User.findByIdAndUpdate({ _id: userId }, data, {
       returnDocument: 'after',
       runValidators: true,
